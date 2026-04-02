@@ -20,6 +20,41 @@ def attack (attacker, defender):
     else:
         return("miss")
 
+peiceStack = {}
+for i in range(32):
+    peiceStack[i] = []
+
+def stackHandler(remove=False, location=0, peice="", y=1, x=1, color=4, movement="r", reverse=False):
+    """
+    remove - add peice if false, else remove
+    location - location in stack (32 spots, -1 & remove to clear stack)
+    peice - string to add \n
+    y - ypos to place peice \n
+    x - xpos to place peice \n
+    color - color group to use \n
+    movement - udlr - direction to print in
+    reverse - reverse print order
+    """
+    if (location == -1 and remove == True):
+        for i in range(32):
+            peiceStack[i] = []
+    elif (location < 0 or location >= 32):
+        return
+    elif (remove == True):
+        peiceStack[location] = []
+    else:
+        peiceStack[location] = [peice, y, x, color, movement, reverse]
+
+def renderStack(stdscr):
+    stdscr.clear()
+    for i in range(32):
+        obj = peiceStack[i]
+        if (len(obj) == 0):
+            pass
+        else:
+            peicePrint(stdscr, obj[0], obj[1], obj[2], obj[3], obj[4], obj[5])
+    stdscr.refresh()
+
 def peicePrint (stdscr, peice, y=1, x=1, color=4, movement="r", reverse=False):
     """
     srdscr - screen \n
@@ -83,41 +118,39 @@ def main(stdscr):
         stdscr.getch()
     else:
         while (tankA.hp > 0 or tankB.hp > 0):
-            stdscr.clear()
-            peicePrint(stdscr, str(tankA.hp), 3, 1, 1)
-            peicePrint(stdscr, str(tankB.hp), 3, 21, 2, "l", True)
-            stdscr.addch(1,1,"=",(curses.color_pair(1)))
-            stdscr.addch(1,2," ",(curses.color_pair(1)))
-            stdscr.addch(1,21,"=",(curses.color_pair(2)))
-            stdscr.addch(1,20," ",(curses.color_pair(2)))
-            stdscr.refresh()
+            stackHandler(True, 31)
+            stackHandler(False, 0, "=", 1, 1, 1)
+            stackHandler(False, 1, "=", 1, 21, 1)
+            stackHandler(False, 2, str(tankA.hp), 3, 1, 1)
+            stackHandler(False, 3, str(tankB.hp), 3, 21, 2, "l", True)
+            renderStack(stdscr)
             curses.napms(500)
             if turn == 0:
                 if (attack(tankA, tankB) == "hit"):
-                    stdscr.addch(1,21, "@", (curses.color_pair(3)))
-                    peicePrint(stdscr, str(tankB.hp), 3, 21, 2, "l", True)
+                    stackHandler(False, 31, "@", 1, 21, 3)
+                    stackHandler(False, 3, str(tankB.hp), 3, 21, 2, "l", True)
                 else:
-                    stdscr.addch(1,20, "@", (curses.color_pair(3)))
+                    stackHandler(False, 31, "@", 1, 20, 3)
                 turn = 1
             elif turn == 1:
                 if (attack(tankB, tankA) == "hit"):
-                    stdscr.addch(1,1, "@", (curses.color_pair(3)))
-                    peicePrint(stdscr, str(tankA.hp), 3, 1, 1)
+                    stackHandler(False, 31, "@", 1, 1, 3)
+                    stackHandler(False, 2, str(tankA.hp), 3, 1, 1)
                 else:
-                    stdscr.addch(1,2, "@", (curses.color_pair(3)))
+                    stackHandler(False, 31, "@", 1, 2, 3)
                 turn = 0
-            stdscr.refresh()
+            renderStack(stdscr)
             curses.napms(300)
 
-            if (tankA.hp < 0):
-                stdscr.addch(1,1, "#", (curses.color_pair(4)))
-                stdscr.refresh()
+            if (tankA.hp <= 0):
+                stackHandler(False, 0, "#", 1, 1, 4)
                 break
-            elif(tankB.hp < 0):
-                stdscr.addch(1,21, "#", (curses.color_pair(4)))
-                stdscr.refresh()
+            elif(tankB.hp <= 0):
+                stackHandler(False, 1, "#", 1, 21, 4)
                 break
-
+        
+        stackHandler(True, 31)
+        renderStack(stdscr)
         time.sleep(5)
 
 wrapper(main)
