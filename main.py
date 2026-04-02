@@ -1,24 +1,9 @@
 import random
-import pandas as pd
+import pandas as pd # pyright: ignore[reportMissingModuleSource]
 import curses
 import math
 import time
 from curses import wrapper
-
-class tank:
-    def __init__(self):
-        self.hp = 100
-        self.damage = 25
-        self.damage_range = 10
-        self.hit_rate = 0.5
-
-def attack (attacker, defender):
-    roll = random.random()
-    if roll <= attacker.hit_rate:
-        defender.hp -= attacker.damage + random.randrange(-attacker.damage_range, attacker.damage_range)
-        return("hit")
-    else:
-        return("miss")
 
 peiceStack = {}
 for i in range(32):
@@ -78,8 +63,63 @@ def peicePrint (stdscr, peice, y=1, x=1, color=4, movement="r", reverse=False):
         if(y < 1 or x < 1): 
             return
 
+class tank:
+    def __init__(self):
+        self.hp = 100
+        self.damage = 20
+        self.damage_range = 8
+        self.hit_rate = 0.7
+        self.armor = 0
+
+def attack (attacker, defender, distance):
+    roll = random.random()
+    armor = defender.armor
+    if (armor < -0.5): armor = -0.5
+    hit_chance = (attacker.hit_rate*10)/((distance**0.5)*(armor+1))
+    if roll <= hit_chance:
+        defender.hp -= attacker.damage + random.randrange(-attacker.damage_range, attacker.damage_range)
+        return("hit")
+    else:
+        return("miss")
+
 def battle(stdscr, tankP, tankE):
-    pass
+    distance = random.randint (100, 200)
+    turn = random.randint(0,1)
+    while (tankP.hp > 0 or tankP.hp > 0):
+        stackHandler(True, 31)
+        stackHandler(False, 0, "=", 1, 1, 1)
+        stackHandler(False, 1, "=", 1, 21, 1)
+        stackHandler(False, 2, str(tankP.hp), 3, 1, 1)
+        stackHandler(False, 3, str(tankE.hp), 3, 21, 2, "l", True)
+        stackHandler(False, 4, str(distance), 4, 1, 1)
+        renderStack(stdscr)
+        curses.napms(500)
+        if turn == 0:
+            if (attack(tankP, tankE, distance) == "hit"):
+                stackHandler(False, 31, "@", 1, 21, 3)
+                stackHandler(False, 3, str(tankE.hp), 3, 21, 2, "l", True)
+            else:
+                stackHandler(False, 31, "@", 1, 20, 3)
+            turn = 1
+        elif turn == 1:
+            if (attack(tankE, tankP, distance) == "hit"):
+                stackHandler(False, 31, "@", 1, 1, 3)
+                stackHandler(False, 2, str(tankP.hp), 3, 1, 1)
+            else:
+                stackHandler(False, 31, "@", 1, 2, 3)
+            turn = 0
+        renderStack(stdscr)
+        curses.napms(300)
+
+        if (tankP.hp <= 0):
+            stackHandler(False, 0, "#", 1, 1, 4)
+            break
+        elif(tankE.hp <= 0):
+            stackHandler(False, 1, "#", 1, 21, 4)
+            break
+    stackHandler(True, 31)
+    renderStack(stdscr)
+    time.sleep(5)
 
 def main(stdscr):
     global playerIn
@@ -102,8 +142,6 @@ def main(stdscr):
 
     tankA = tank()
     tankB = tank()
-    turn = random.randint(0,1)
-    hit = ""
     playerIn = stdscr.getch()
     stdscr.clear()
 
@@ -119,40 +157,6 @@ def main(stdscr):
         stdscr.refresh()
         stdscr.getch()
     else:
-        while (tankA.hp > 0 or tankB.hp > 0):
-            stackHandler(True, 31)
-            stackHandler(False, 0, "=", 1, 1, 1)
-            stackHandler(False, 1, "=", 1, 21, 1)
-            stackHandler(False, 2, str(tankA.hp), 3, 1, 1)
-            stackHandler(False, 3, str(tankB.hp), 3, 21, 2, "l", True)
-            renderStack(stdscr)
-            curses.napms(500)
-            if turn == 0:
-                if (attack(tankA, tankB) == "hit"):
-                    stackHandler(False, 31, "@", 1, 21, 3)
-                    stackHandler(False, 3, str(tankB.hp), 3, 21, 2, "l", True)
-                else:
-                    stackHandler(False, 31, "@", 1, 20, 3)
-                turn = 1
-            elif turn == 1:
-                if (attack(tankB, tankA) == "hit"):
-                    stackHandler(False, 31, "@", 1, 1, 3)
-                    stackHandler(False, 2, str(tankA.hp), 3, 1, 1)
-                else:
-                    stackHandler(False, 31, "@", 1, 2, 3)
-                turn = 0
-            renderStack(stdscr)
-            curses.napms(300)
-
-            if (tankA.hp <= 0):
-                stackHandler(False, 0, "#", 1, 1, 4)
-                break
-            elif(tankB.hp <= 0):
-                stackHandler(False, 1, "#", 1, 21, 4)
-                break
-        
-        stackHandler(True, 31)
-        renderStack(stdscr)
-        time.sleep(5)
+        battle(stdscr,tankA,tankB)
 
 wrapper(main)
