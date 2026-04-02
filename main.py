@@ -78,6 +78,8 @@ def peicePrint (stdscr, peice, y=1, x=1, color=4, movement="r", reverse=False):
         if(y < 1 or x < 1): 
             return
 
+def battle(stdscr, tankP, tankE):
+    pass
 
 def main(stdscr):
     global playerIn
