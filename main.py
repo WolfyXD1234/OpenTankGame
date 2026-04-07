@@ -64,12 +64,49 @@ def peicePrint (stdscr, peice, y=1, x=1, color=4, movement="r", reverse=False):
             return
 
 class tank:
-    def __init__(self):
+    def __init__(self, difficulty):
         self.hp = 100
         self.damage = 20
         self.damage_range = 8
+        self.prefered_range = 120
+        self.ok_range = 10
         self.hit_rate = 0.7
         self.armor = 0
+        self.travel = 20
+        self.pips = 2
+        self.parts = {"body":{"hp":0,"armor":0,"travel":0,"pips":0}, 
+                      "engine":{"travel":0,"pips":0}, 
+                      "cannon":{"damage":0,"damage_range":0,"hit_rate":0}, 
+                      "ai":{"prefered_range":0,"ok_range":0}, 
+                      "extra":{}}
+        for part in self.parts:
+            print(part)
+            print(type(part))
+            print("---")
+    def genPart(self,dif,part):
+        if (part == "body"):
+            hp = ((random.random()*20)-10)*((dif+1)**0.5)
+            armor = ((random.random()*0.14)-0.01)*((dif+1)**0.5)
+            travel = ((random.random()*20)-10)*((dif+1)**0.5)
+            pips = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"hp":hp,"armor":armor,"travel":travel,"pips":pips}
+        elif (part == "engine"):
+            travel = ((random.random()*0)-0)*((dif+1)**0.5)
+            pips = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"travel":travel,"pips":pips}
+        elif (part == "cannon"):
+            damage = ((random.random()*0)-0)*((dif+1)**0.5)
+            damage_range = ((random.random()*0)-0)*((dif+1)**0.5)
+            hit_rate = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"damage":damage,"damage_range":damage_range,"hit_rate":hit_rate}
+        elif (part == "ai"):
+            prefered_range = ((random.random()*0)-0)*((dif+1)**0.5)
+            ok_range = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"prefered_range":prefered_range,"ok_range":ok_range}
+        elif (part == "extra"):
+            pass
+        else:
+            print("what")
 
 def attack (attacker, defender, distance):
     roll = random.random()
@@ -159,4 +196,5 @@ def main(stdscr):
     else:
         battle(stdscr,tankA,tankB)
 
-wrapper(main)
+# wrapper(main)
+tanky = tank()
