@@ -64,49 +64,82 @@ def peicePrint (stdscr, peice, y=1, x=1, color=4, movement="r", reverse=False):
             return
 
 class tank:
-    def __init__(self, difficulty):
+    def __init__(self, auto=True, /, *, difficulty=0, parts={}):
+        self.baseStats = {
+            "hp" : 100,
+            "hpm" : 100,
+            "damage" : 20,
+            "damage_range" : 8,
+            "prefered_range" : 120,
+            "ok_range" : 10,
+            "fire_pref" : 5,
+            "hit_rate" : 0.7,
+            "armor" : 0,
+            "travel" : 20,
+            "pips" : 2
+        }
+        if (auto == True):
+            self.parts = {"body":self.genPart(difficulty,"body"), 
+                        "engine":self.genPart(difficulty,"engine"), 
+                        "cannon":self.genPart(difficulty,"cannon"), 
+                        "ai":self.genPart(difficulty,"ai"), 
+                        "extra":self.genPart(difficulty,"extra")}
+        else:
+            self.parts = parts
+        self.inventory = []
         self.hp = 100
+        self.reStat()
+        
+    def genPart(self,dif,part):
+        if (part == "body"):
+            hpm = round(((random.random()*20)-10)*((dif+1)**0.5))
+            armor = round(((random.random()*0.14)-0.01)*((dif+1)**0.5),3)
+            travel = round(((random.random()*20)-10)*((dif+1)**0.5))
+            pips = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"hpm":hpm,"armor":armor,"travel":travel,"pips":pips}
+        elif (part == "engine"):
+            travel = round(((random.random()*0)-0)*((dif+1)**0.5))
+            hit_rate = ((random.random()*0)-0)*((dif+1)**0.5)
+            pips = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"travel":travel,"hit_rate":hit_rate,"pips":pips}
+        elif (part == "cannon"):
+            damage = round(((random.random()*0)-0)*((dif+1)**0.5))
+            damage_range = round(((random.random()*0)-0)*((dif+1)**0.5))
+            hit_rate = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"damage":damage,"damage_range":damage_range,"hit_rate":hit_rate}
+        elif (part == "ai"):
+            prefered_range = round(((random.random()*0)-0)*((dif+1)**0.5))
+            ok_range = round(((random.random()*0)-0)*((dif+1)**0.5))
+            fire_pref = ((random.random()*0)-0)*((dif+1)**0.5)
+            return {"prefered_range":prefered_range,"ok_range":ok_range, "fire_pref":fire_pref}
+        elif (part == "extra"):
+            return{}
+        else:
+            print("what")
+    
+    def reStat(self):
+        self.hpm = 100
         self.damage = 20
         self.damage_range = 8
         self.prefered_range = 120
         self.ok_range = 10
+        self.fire_pref = 5
         self.hit_rate = 0.7
         self.armor = 0
         self.travel = 20
         self.pips = 2
-        self.parts = {"body":{"hp":0,"armor":0,"travel":0,"pips":0}, 
-                      "engine":{"travel":0,"pips":0}, 
-                      "cannon":{"damage":0,"damage_range":0,"hit_rate":0}, 
-                      "ai":{"prefered_range":0,"ok_range":0}, 
-                      "extra":{}}
         for part in self.parts:
-            print(part)
-            print(type(part))
-            print("---")
-    def genPart(self,dif,part):
-        if (part == "body"):
-            hp = ((random.random()*20)-10)*((dif+1)**0.5)
-            armor = ((random.random()*0.14)-0.01)*((dif+1)**0.5)
-            travel = ((random.random()*20)-10)*((dif+1)**0.5)
-            pips = ((random.random()*0)-0)*((dif+1)**0.5)
-            return {"hp":hp,"armor":armor,"travel":travel,"pips":pips}
-        elif (part == "engine"):
-            travel = ((random.random()*0)-0)*((dif+1)**0.5)
-            pips = ((random.random()*0)-0)*((dif+1)**0.5)
-            return {"travel":travel,"pips":pips}
-        elif (part == "cannon"):
-            damage = ((random.random()*0)-0)*((dif+1)**0.5)
-            damage_range = ((random.random()*0)-0)*((dif+1)**0.5)
-            hit_rate = ((random.random()*0)-0)*((dif+1)**0.5)
-            return {"damage":damage,"damage_range":damage_range,"hit_rate":hit_rate}
-        elif (part == "ai"):
-            prefered_range = ((random.random()*0)-0)*((dif+1)**0.5)
-            ok_range = ((random.random()*0)-0)*((dif+1)**0.5)
-            return {"prefered_range":prefered_range,"ok_range":ok_range}
-        elif (part == "extra"):
-            pass
-        else:
-            print("what")
+            for effect in self.parts[part]:
+                exec(f"self.{effect}+=self.parts[part][effect]")
+        if self.hp > self.hpm:
+            self.hp = self.hpm
+    
+    def repair(self):
+        self.hp = self.hpm
+    
+    def __str__(self):
+        print(self.parts)
+        return(f" hp:{self.hpm}\n damage:{self.damage}\n damage_range:{self.damage_range}\n prefered_range:{self.prefered_range}\n ok_range:{self.ok_range}\n hit_rate:{self.hit_rate}\n armor:{self.armor}\n travel:{self.travel}\n pips:{self.pips}")
 
 def attack (attacker, defender, distance):
     roll = random.random()
@@ -120,9 +153,10 @@ def attack (attacker, defender, distance):
         return("miss")
 
 def battle(stdscr, tankP, tankE):
+    stackHandler(True, -1)
     distance = random.randint (100, 200)
     turn = random.randint(0,1)
-    while (tankP.hp > 0 or tankP.hp > 0):
+    while (True):
         stackHandler(True, 31)
         stackHandler(False, 0, "=", 1, 1, 1)
         stackHandler(False, 1, "=", 1, 21, 1)
@@ -132,31 +166,52 @@ def battle(stdscr, tankP, tankE):
         renderStack(stdscr)
         curses.napms(500)
         if turn == 0:
-            if (attack(tankP, tankE, distance) == "hit"):
-                stackHandler(False, 31, "@", 1, 21, 3)
-                stackHandler(False, 3, str(tankE.hp), 3, 21, 2, "l", True)
+            chance = random.random()
+            if chance < ((10**(-(tankP.fire_pref/10)))/((10**(-(tankP.fire_pref/10)))+math.exp(-(abs(tankP.prefered_range-distance))))) and abs(tankP.prefered_range-distance) > tankP.ok_range:
+                if abs(distance-tankP.prefered_range) < tankP.travel:
+                    distance = tankP.prefered_range
+                elif distance > tankP.prefered_range:
+                    distance -= tankP.travel
+                else:
+                    distance += tankP.travel
             else:
-                stackHandler(False, 31, "@", 1, 20, 3)
+                if (attack(tankP, tankE, distance) == "hit"):
+                    stackHandler(False, 31, "@", 1, 21, 3)
+                    stackHandler(False, 3, str(tankE.hp), 3, 21, 2, "l", True)
+                else:
+                    stackHandler(False, 31, "@", 1, 20, 3)
             turn = 1
         elif turn == 1:
-            if (attack(tankE, tankP, distance) == "hit"):
-                stackHandler(False, 31, "@", 1, 1, 3)
-                stackHandler(False, 2, str(tankP.hp), 3, 1, 1)
+            chance = random.random()
+            if chance < ((10**(-(tankE.fire_pref/10)))/((10**(-(tankE.fire_pref/10)))+math.exp(-(abs(tankE.prefered_range-distance))))) and abs(tankE.prefered_range-distance) > tankE.ok_range:
+                if abs(distance-tankE.prefered_range) < tankE.travel:
+                    distance = tankE.prefered_range
+                elif distance > tankE.prefered_range:
+                    distance -= tankE.travel
+                else:
+                    distance += tankP.travel
             else:
-                stackHandler(False, 31, "@", 1, 2, 3)
+                if (attack(tankE, tankP, distance) == "hit"):
+                    stackHandler(False, 31, "@", 1, 1, 3)
+                    stackHandler(False, 2, str(tankP.hp), 3, 1, 1)
+                else:
+                    stackHandler(False, 31, "@", 1, 2, 3)
             turn = 0
         renderStack(stdscr)
         curses.napms(300)
 
         if (tankP.hp <= 0):
             stackHandler(False, 0, "#", 1, 1, 4)
+            win = True
             break
         elif(tankE.hp <= 0):
             stackHandler(False, 1, "#", 1, 21, 4)
+            win = False
             break
     stackHandler(True, 31)
     renderStack(stdscr)
     time.sleep(5)
+    return win
 
 def main(stdscr):
     global playerIn
@@ -183,7 +238,6 @@ def main(stdscr):
     stdscr.clear()
 
     if (playerIn == 112):
-        # curses.init_color(5, 300, 300, 300)
         for i in range(8):
             curses.init_pair(i, i, 0)
             stdscr.addch(1,i+1, str(i)[-1:], (curses.color_pair(i)))
@@ -196,5 +250,4 @@ def main(stdscr):
     else:
         battle(stdscr,tankA,tankB)
 
-# wrapper(main)
-tanky = tank()
+wrapper(main)

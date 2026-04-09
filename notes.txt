@@ -1,0 +1,5 @@
+1.  create all parts that will be used
+2.  create UI
+3.  saving
+4.  part stealing
+5.  part swaping
