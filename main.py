@@ -210,8 +210,11 @@ def battle(stdscr, tankP, tankE):
             break
     stackHandler(True, 31)
     renderStack(stdscr)
-    time.sleep(5)
+    time.sleep(3)
     return win
+
+def saveHandler():
+    pass
 
 def main(stdscr):
     global playerIn
