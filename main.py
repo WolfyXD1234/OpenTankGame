@@ -232,22 +232,79 @@ def main(stdscr):
     peicePrint(stdscr, "press start", 1, 1, 1)
     #stdscr.addstr(1,1,"press start", (curses.color_pair(1)))
 
-    tankA = tank()
-    tankB = tank()
     playerIn = stdscr.getch()
     stdscr.clear()
 
     if (playerIn == 112):
-        for i in range(8):
-            curses.init_pair(i, i, 0)
-            stdscr.addch(1,i+1, str(i)[-1:], (curses.color_pair(i)))
-        if (curses.can_change_color() == True):
-            stdscr.addch(2,1, "T", (curses.color_pair(7)))
-        else:
-            stdscr.addch(2,1, "F", (curses.color_pair(7)))
-        stdscr.refresh()
-        stdscr.getch()
+        while True:
+            for i in range(8):
+                curses.init_pair(i, i, 0)
+                stdscr.addch(1,i+1, str(i)[-1:], (curses.color_pair(i)))
+            if (curses.can_change_color() == True):
+                stdscr.addch(2,1, "T", (curses.color_pair(7)))
+            else:
+                stdscr.addch(2,1, "F", (curses.color_pair(7)))
+            stdscr.refresh()
+            var = stdscr.getch()
+            stdscr.clear()
+            if var == 112:
+                break
+            else:
+                peicePrint(stdscr, str(var), 3)
     else:
-        battle(stdscr,tankA,tankB)
+        curser_pos = 0
+        while True:
+            stackHandler(False, 0, "|||", 2, 1, 1, "d")
+            stackHandler(False, 1, "|||", 2, 10, 1, "d")
+            stackHandler(False, 2, "|||", 2, 19, 1, "d")
+            stackHandler(False, 3, "-------------------", 1, 1, 1)
+            stackHandler(False, 4, "-------------------", 3, 1, 1)
+            stackHandler(False, 5, "-------------------", 5, 1, 1)
+            stackHandler(False, 6, "tank1", 2, 3, 1)
+            stackHandler(False, 7, "tank2", 2, 12, 1)
+            stackHandler(False, 8, "tank3", 4, 3, 1)
+            stackHandler(False, 9, "quit?", 4, 12, 1)
+            if True:
+                stackHandler(False, 10, "#", 2, 9, 4)
+            if True:
+                stackHandler(False, 11, "#", 2, 18, 4)
+            if True:
+                stackHandler(False, 12, "#", 4, 9, 4)
+            #battle(stdscr,tankA,tankB)
+            while True:
+                if curser_pos == 0:
+                    stackHandler(False, 31, ">", 2, 2, 1)
+                elif curser_pos == 1:
+                    stackHandler(False, 31, ">", 2, 11, 1)
+                elif curser_pos == 2:
+                    stackHandler(False, 31, ">", 4, 2, 1)
+                elif curser_pos == 3:
+                    stackHandler(False, 31, ">", 4, 11, 1)
+                renderStack(stdscr)
+                playerIn = stdscr.getch()
+                if playerIn in [122, 32, 10]:
+                    choice = curser_pos
+                    break
+                elif playerIn in [258, 259]:
+                    curser_pos = curser_pos ^ 2
+                elif playerIn in [260, 261]:
+                    curser_pos = curser_pos ^ 1
+                if curser_pos < 0:
+                    curser_pos += 4
+                else:
+                    curser_pos = curser_pos%4
+            if choice == 3:
+                break
+            if choice == 0:
+                battle(stdscr, tank(), tank())
+            if choice == 1:
+                battle(stdscr, tank(), tank())
+            if choice == 2:
+                battle(stdscr, tank(), tank())
+            else:
+                time.sleep(2)
 
 wrapper(main)
+
+# for i in range(10):
+#     print(i%4)
