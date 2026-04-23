@@ -1,5 +1,6 @@
 import random
-import pandas as pd # pyright: ignore[reportMissingModuleSource]
+# import pandas as pd # pyright: ignore[reportMissingModuleSource]
+import pypickle as pkl # pyright: ignore[reportMissingModuleSource]
 import curses
 import math
 import time
@@ -11,8 +12,8 @@ for i in range(32):
 
 def stackHandler(remove=False, location=0, peice="", y=1, x=1, color=4, movement="r", reverse=False):
     """
-    remove - add peice if false, else remove
-    location - location in stack (32 spots, -1 & remove to clear stack)
+    remove - add peice if false, else remove\n
+    location - location in stack (32 spots, -1 & remove to clear stack)\n
     peice - string to add \n
     y - ypos to place peice \n
     x - xpos to place peice \n
@@ -31,6 +32,9 @@ def stackHandler(remove=False, location=0, peice="", y=1, x=1, color=4, movement
         peiceStack[location] = [peice, y, x, color, movement, reverse]
 
 def renderStack(stdscr):
+    """
+    renders the curent stack
+    """
     stdscr.clear()
     for i in range(32):
         obj = peiceStack[i]
@@ -200,6 +204,7 @@ def battle(stdscr, tankP, tankE):
         renderStack(stdscr)
         curses.napms(300)
 
+        #if tanks are dead, end battle
         if (tankP.hp <= 0):
             stackHandler(False, 0, "#", 1, 1, 4)
             win = True
@@ -213,10 +218,42 @@ def battle(stdscr, tankP, tankE):
     time.sleep(3)
     return win
 
-def saveHandler():
-    pass
+def saveHandler(load = True, data = {}):
+    #save data
+    if load == False:
+        if type(data) != dict or len(data) != 3:
+            raise Exception("non-tank data: failed save")
+        for index in data:
+            if type(data[index]) != tank:
+                raise Exception("non-tank data: failed save")
+        return pkl.save("saves.pkl", data, True)
+
+    #load data
+    else:
+        save = pkl.load("saves.pkl")
+        if save == None:
+            save = {0:tank(), 1:tank(), 2:tank()}
+            for index in save:
+                save[index].hp = 0
+            pass
+        else:
+            if type(save) != dict or len(save) != 3:
+                raise Exception("non-tank data: failed load")
+            for index in save:
+                if type(save[index]) != tank:
+                    raise Exception("non-tank data: failed load")
+        return save
+
+def tankMenu(player):
+    """
+    player - player tank
+    used to load game
+    """
+    player.hp = 0
+    return
 
 def main(stdscr):
+    tanks = saveHandler(True)
     global playerIn
     curses.curs_set(0)
     curses.start_color()
@@ -255,8 +292,11 @@ def main(stdscr):
             else:
                 peicePrint(stdscr, str(var), 3)
     else:
-        curser_pos = 0
         while True:
+            #load main menu
+            curser_pos = 0
+
+            #rendering
             stackHandler(False, 0, "|||", 2, 1, 1, "d")
             stackHandler(False, 1, "|||", 2, 10, 1, "d")
             stackHandler(False, 2, "|||", 2, 19, 1, "d")
@@ -267,13 +307,23 @@ def main(stdscr):
             stackHandler(False, 7, "tank2", 2, 12, 1)
             stackHandler(False, 8, "tank3", 4, 3, 1)
             stackHandler(False, 9, "quit?", 4, 12, 1)
-            if True:
+            #tank 0 image
+            if tanks[0].hp <= 0:
                 stackHandler(False, 10, "#", 2, 9, 4)
-            if True:
+            else:
+                stackHandler(False, 10, "=", 2, 9, 1)
+            #tank 1 image
+            if tanks[1].hp <= 0:
                 stackHandler(False, 11, "#", 2, 18, 4)
-            if True:
+            else:
+                stackHandler(False, 11, "=", 2, 18, 1)
+            #tank 2 image
+            if tanks[2].hp <= 0:
                 stackHandler(False, 12, "#", 4, 9, 4)
-            #battle(stdscr,tankA,tankB)
+            else:
+                stackHandler(False, 12, "=", 4, 9, 1)
+
+            #player input
             while True:
                 if curser_pos == 0:
                     stackHandler(False, 31, ">", 2, 2, 1)
@@ -292,22 +342,17 @@ def main(stdscr):
                     curser_pos = curser_pos ^ 2
                 elif playerIn in [260, 261]:
                     curser_pos = curser_pos ^ 1
-                if curser_pos < 0:
-                    curser_pos += 4
-                else:
-                    curser_pos = curser_pos%4
+            #quit
             if choice == 3:
+                saveHandler(False, tanks)
                 break
-            if choice == 0:
-                battle(stdscr, tank(), tank())
-            if choice == 1:
-                battle(stdscr, tank(), tank())
-            if choice == 2:
-                battle(stdscr, tank(), tank())
+            #load tank of choice
             else:
-                time.sleep(2)
+                if tanks[choice].hp <= 0:
+                    tanks[choice] = tank()
+                else:
+                    tankMenu(tanks[choice])
 
-wrapper(main)
 
-# for i in range(10):
-#     print(i%4)
+if __name__ == "__main__":
+    wrapper(main)

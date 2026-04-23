@@ -1,10 +1,34 @@
-import pandas as pd
+# import pandas as pd
+import os
+import pytest
+import pypickle as pkl
 from main import saveHandler
 
-save = pd.read_csv("save.csv")
+def test_saves():
 
-# def test_saves():
-#     pass
-#     #test for importing bad format for saves
-#     #test for importing bad numbers
-#     #test for importing non number values
+    #data for wrong data type
+    with pytest.raises(Exception) as excinfo:
+        realSave = pkl.load("saves.pkl")
+        pkl.save("saves.pkl", "bad data example", True)
+        saveHandler(True)
+
+    #reset save data
+    if realSave == None:
+        # os.remove("saves.pkl")
+        print("removed bad save")
+    else:
+        pkl.save("saves.pkl", realSave, True)
+        print("replaced bad save")
+    
+    #test for loading wrong data type
+    assert "non-tank data" in str(excinfo.value)
+
+    
+    #test for loading non number values
+
+    #test for saving no data
+    # with pytest.raises(Exception) as excinfo:
+    #     saveHandler(False, {})
+    # assert "corrupted game" in str(excinfo.value)
+
+
