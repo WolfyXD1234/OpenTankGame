@@ -1,14 +1,31 @@
 import random
 # import pandas as pd # pyright: ignore[reportMissingModuleSource]
-import pypickle as pkl # pyright: ignore[reportMissingModuleSource]
+import pypickle as pkl # pyright: ignore[reportMissingImports]
 import curses
 import math
 import time
 from curses import wrapper
 
+#set up stack for rendering objects
 peiceStack = {}
 for i in range(32):
     peiceStack[i] = []
+
+#shorthand for rendering strings
+shorthand = {
+    "hp" : "hpc",
+    "hpm" : "hpm",
+    "damage" : "dmg",
+    "damage_range" : "drg",
+    "prefered_range" : "prg",
+    "ok_range" : "org",
+    "fire_pref" : "frc",
+    "hit_rate" : "htr",
+    "armor" : "arm",
+    "travel" : "spd",
+    "pips" : "eng"
+}
+
 
 def stackHandler(remove=False, location=0, peice="", y=1, x=1, color=4, movement="r", reverse=False):
     """
@@ -92,9 +109,12 @@ class tank:
             self.parts = parts
         self.inventory = []
         self.hp = 100
+        self.combats=0
         self.reStat()
         
     def genPart(self,dif,part):
+        #generate chosen part
+        #this is probably horrid code
         if (part == "body"):
             hpm = round(((random.random()*20)-10)*((dif+1)**0.5))
             armor = round(((random.random()*0.14)-0.01)*((dif+1)**0.5),3)
@@ -122,6 +142,7 @@ class tank:
             print("what")
     
     def reStat(self):
+        #sets tank stats based on parts
         self.hpm = 100
         self.damage = 20
         self.damage_range = 8
@@ -133,10 +154,24 @@ class tank:
         self.travel = 20
         self.pips = 2
         for part in self.parts:
-            for effect in self.parts[part]:
-                exec(f"self.{effect}+=self.parts[part][effect]")
+            if type(self.parts[part]) == dict:
+                for effect in self.parts[part]:
+                    if effect in self.baseStats:
+                        exec(f"self.{effect}+=self.parts[part][effect]")
+                    else:
+                        raise Exception("bad tank data: non stat data")
+            else:
+                raise Exception("bad tank data: bad part")
         if self.hp > self.hpm:
             self.hp = self.hpm
+
+    def replacePart(self, inventoryPos):
+        #replaces equiped part with chosen part
+        partName = self.inventory[inventoryPos][0]
+        partObj = self.inventory[inventoryPos][1]
+        if partName in self.parts:
+            self.inventory.append([partName, self.parts[partName]])
+        self.parts[partName] = partObj
     
     def repair(self):
         self.hp = self.hpm
@@ -207,16 +242,19 @@ def battle(stdscr, tankP, tankE):
         #if tanks are dead, end battle
         if (tankP.hp <= 0):
             stackHandler(False, 0, "#", 1, 1, 4)
-            win = True
+            win = False
             break
         elif(tankE.hp <= 0):
             stackHandler(False, 1, "#", 1, 21, 4)
-            win = False
+            win = True
             break
     stackHandler(True, 31)
     renderStack(stdscr)
     time.sleep(3)
-    return win
+    if win == True:
+        return tankE
+    else:
+        return False
 
 def saveHandler(load = True, data = {}):
     #save data
@@ -244,15 +282,89 @@ def saveHandler(load = True, data = {}):
                     raise Exception("non-tank data: failed load")
         return save
 
-def tankMenu(player):
-    """
-    player - player tank
-    used to load game
-    """
-    player.hp = 0
-    return
-
 def main(stdscr):
+
+    def tankMenu(player):
+        """
+        player - player tank
+        used to load game
+        """
+        while True:
+            curser_pos = 0
+            stackHandler(True, -1)
+            stackHandler(False, 0, "|||", 2, 1, 1, "d")
+            stackHandler(False, 1, "|||", 2, 10, 1, "d")
+            stackHandler(False, 2, "|||", 2, 19, 1, "d")
+            stackHandler(False, 3, "-------------------", 1, 1, 1)
+            stackHandler(False, 4, "-------------------", 3, 1, 1)
+            stackHandler(False, 5, "-------------------", 5, 1, 1)
+            stackHandler(False, 6, "Battle", 2, 3, 1)
+            stackHandler(False, 7, "repair", 2, 12, 1)
+            stackHandler(False, 8, "editer", 4, 3, 1)
+            stackHandler(False, 9, "title?", 4, 12, 1)
+
+            while True:
+                if curser_pos == 0:
+                    stackHandler(False, 31, ">", 2, 2, 1)
+                elif curser_pos == 1:
+                    stackHandler(False, 31, ">", 2, 11, 1)
+                elif curser_pos == 2:
+                    stackHandler(False, 31, ">", 4, 2, 1)
+                elif curser_pos == 3:
+                    stackHandler(False, 31, ">", 4, 11, 1)
+                renderStack(stdscr)
+                playerIn = stdscr.getch()
+                if playerIn in [122, 32, 10]:
+                    choice = curser_pos
+                    break
+                elif playerIn in [258, 259]:
+                    curser_pos = curser_pos ^ 2
+                elif playerIn in [260, 261]:
+                    curser_pos = curser_pos ^ 1
+            if choice == 3:
+                #return to menu
+                saveHandler(False, tanks)
+                return
+            if choice == 0:
+                fight = battle(stdscr, player, tank(difficulty=player.combats))
+                if fight == False:
+                    #handle loss
+                    saveHandler(False, tanks)
+                    return
+                else:
+                    #handle win
+                    part_list = []
+                    for part in fight.parts:
+                        part_list.append([part, fight.parts[part]])
+                    chosen_part=part_list[random.randint(0,len(part_list))]
+                    player.inventory.append(chosen_part)
+            if choice == 1:
+                #heal
+                player.hp = player.hpm
+            if choice == 2:
+                #edit tank
+                stackHandler(True, -1)
+                renderPos = 0
+                for i in range(len(player.inventory)):
+                    stackHandler(False, renderPos, "f{player.inventory[i][0]}:", renderPos+1, 2, 1)
+                    renderPos +=1
+                    for effect in player.inventory[i][1]:
+                        if effect in player.baseStats:
+                            stackHandler(False)
+                            stackHandler(False, renderPos, "f{player.inventory[i][1][effect]}:", renderPos+1, 2, 1)
+                            renderPos += 1
+                        else:
+                            raise Exception("How in the world did you fight a tank with bad data????????")
+                        
+                        if renderPos > 30:
+                            break
+                renderStack(stdscr)
+                playerIn = stdscr.getch()
+                pass
+
+
+    
+
     tanks = saveHandler(True)
     global playerIn
     curses.curs_set(0)
@@ -349,7 +461,7 @@ def main(stdscr):
             #load tank of choice
             else:
                 if tanks[choice].hp <= 0:
-                    tanks[choice] = tank()
+                    tanks[choice] = tank(False, parts={"nuke":{"damage":100000}})
                 else:
                     tankMenu(tanks[choice])
 
