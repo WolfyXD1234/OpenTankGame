@@ -97,7 +97,7 @@ class tank:
             "hit_rate" : 0.7,
             "armor" : 0,
             "travel" : 20,
-            "pips" : 2
+            #"pips" : 2
         }
         if (auto == True):
             self.parts = {"body":self.genPart(difficulty,"body"), 
@@ -118,23 +118,25 @@ class tank:
         if (part == "body"):
             hpm = round(((random.random()*20)-10)*((dif+1)**0.5))
             armor = round(((random.random()*0.14)-0.01)*((dif+1)**0.5),3)
-            travel = round(((random.random()*20)-10)*((dif+1)**0.5))
-            pips = ((random.random()*0)-0)*((dif+1)**0.5)
-            return {"hpm":hpm,"armor":armor,"travel":travel,"pips":pips}
+            travel = round(((random.random()*15)-7.5)*((dif+1)**0.5))
+            #pips = ((random.random()*0)-0)*((dif+1)**0.5)
+            #return {"hpm":hpm,"armor":armor,"travel":travel,"pips":pips}
+            return {"hpm":hpm,"armor":armor,"travel":travel}
         elif (part == "engine"):
-            travel = round(((random.random()*0)-0)*((dif+1)**0.5))
-            hit_rate = ((random.random()*0)-0)*((dif+1)**0.5)
-            pips = ((random.random()*0)-0)*((dif+1)**0.5)
-            return {"travel":travel,"hit_rate":hit_rate,"pips":pips}
+            travel = round(((random.random()*30)-15)*((dif+1)**0.5))
+            hit_rate = abs(round(((random.random()*1)-0.5)*((dif+1)**0.5), 3))
+            #pips = ((random.random()*0)-0)*((dif+1)**0.5)
+            #return {"travel":travel,"hit_rate":hit_rate,"pips":pips}
+            return {"travel":travel,"hit_rate":hit_rate}
         elif (part == "cannon"):
-            damage = round(((random.random()*0)-0)*((dif+1)**0.5))
-            damage_range = round(((random.random()*0)-0)*((dif+1)**0.5))
-            hit_rate = ((random.random()*0)-0)*((dif+1)**0.5)
+            damage = round(((random.random()*5)-2.5)*((dif+1)**0.5))
+            damage_range = round(((random.random()*8)-4)*((dif+1)**0.5))
+            hit_rate = round(((random.random()*2)-1)*((dif+1)**0.5),3)
             return {"damage":damage,"damage_range":damage_range,"hit_rate":hit_rate}
         elif (part == "ai"):
-            prefered_range = round(((random.random()*0)-0)*((dif+1)**0.5))
-            ok_range = round(((random.random()*0)-0)*((dif+1)**0.5))
-            fire_pref = ((random.random()*0)-0)*((dif+1)**0.5)
+            prefered_range = round(((random.random()*40)-15)*((dif+1)**0.5))
+            ok_range = round(((random.random()*10)-2.5)*((dif+1)**0.5))
+            fire_pref = round(((random.random()*6)-3)*((dif+1)**0.5),3)
             return {"prefered_range":prefered_range,"ok_range":ok_range, "fire_pref":fire_pref}
         elif (part == "extra"):
             return{}
@@ -152,7 +154,7 @@ class tank:
         self.hit_rate = 0.7
         self.armor = 0
         self.travel = 20
-        self.pips = 2
+        #self.pips = 2
         for part in self.parts:
             if type(self.parts[part]) == dict:
                 for effect in self.parts[part]:
@@ -164,21 +166,34 @@ class tank:
                 raise Exception("bad tank data: bad part")
         if self.hp > self.hpm:
             self.hp = self.hpm
+        if self.ok_range < 1:
+            self.ok_range = 1
+        if self.prefered_range < 100:
+            self.prefered_range = 100
+        if self.travel < 0:
+            self.travel = 0
+        if self.damage_range < 0:
+            self.damage_range = 0
 
     def replacePart(self, inventoryPos):
         #replaces equiped part with chosen part
         partName = self.inventory[inventoryPos][0]
         partObj = self.inventory[inventoryPos][1]
+        self.inventory.pop(inventoryPos)
         if partName in self.parts:
             self.inventory.append([partName, self.parts[partName]])
+        else:
+            raise Exception("Bad Name Error")
         self.parts[partName] = partObj
+        self.reStat()
     
     def repair(self):
         self.hp = self.hpm
     
     def __str__(self):
         print(self.parts)
-        return(f" hp:{self.hpm}\n damage:{self.damage}\n damage_range:{self.damage_range}\n prefered_range:{self.prefered_range}\n ok_range:{self.ok_range}\n hit_rate:{self.hit_rate}\n armor:{self.armor}\n travel:{self.travel}\n pips:{self.pips}")
+        #return(f" hp:{self.hpm}\n damage:{self.damage}\n damage_range:{self.damage_range}\n prefered_range:{self.prefered_range}\n ok_range:{self.ok_range}\n hit_rate:{self.hit_rate}\n armor:{self.armor}\n travel:{self.travel}\n pips:{self.pips}")
+        return(f" hp:{self.hpm}\n damage:{self.damage}\n damage_range:{self.damage_range}\n prefered_range:{self.prefered_range}\n ok_range:{self.ok_range}\n hit_rate:{self.hit_rate}\n armor:{self.armor}\n travel:{self.travel}")
 
 def attack (attacker, defender, distance):
     roll = random.random()
@@ -186,7 +201,10 @@ def attack (attacker, defender, distance):
     if (armor < -0.5): armor = -0.5
     hit_chance = (attacker.hit_rate*10)/((distance**0.5)*(armor+1))
     if roll <= hit_chance:
-        defender.hp -= attacker.damage + random.randrange(-attacker.damage_range, attacker.damage_range)
+        damage = attacker.damage + random.randrange(-attacker.damage_range, attacker.damage_range)
+        if damage < 0:
+            damage = 0
+        defender.hp -= damage
         return("hit")
     else:
         return("miss")
@@ -284,6 +302,8 @@ def saveHandler(load = True, data = {}):
 
 def main(stdscr):
 
+    curses.resizeterm(24,175)
+
     def tankMenu(player):
         """
         player - player tank
@@ -291,6 +311,7 @@ def main(stdscr):
         """
         while True:
             curser_pos = 0
+            #load menu
             stackHandler(True, -1)
             stackHandler(False, 0, "|||", 2, 1, 1, "d")
             stackHandler(False, 1, "|||", 2, 10, 1, "d")
@@ -304,6 +325,7 @@ def main(stdscr):
             stackHandler(False, 9, "title?", 4, 12, 1)
 
             while True:
+                #handle input
                 if curser_pos == 0:
                     stackHandler(False, 31, ">", 2, 2, 1)
                 elif curser_pos == 1:
@@ -326,6 +348,7 @@ def main(stdscr):
                 saveHandler(False, tanks)
                 return
             if choice == 0:
+                #combat
                 fight = battle(stdscr, player, tank(difficulty=player.combats))
                 if fight == False:
                     #handle loss
@@ -333,34 +356,103 @@ def main(stdscr):
                     return
                 else:
                     #handle win
+                    #get parts
                     part_list = []
                     for part in fight.parts:
                         part_list.append([part, fight.parts[part]])
-                    chosen_part=part_list[random.randint(0,len(part_list))]
+                    partChoice = 0
+                    #chose part
+                    while True:
+                        itemName = part_list[partChoice][0]
+
+                        #render
+                        stackHandler(True, -1)
+                        if partChoice < len(part_list)-1:
+                            itemName += " >"
+                        if partChoice > 0:
+                            stackHandler(False, 0, "<", 1, 1, 1)
+                        stackHandler(False, 1, itemName, 1, 3, 1)
+                        renderPos = 2
+                        for effect in part_list[partChoice][1]:
+                            stackHandler(False, renderPos, shorthand[effect]+":"+str(part_list[partChoice][1][effect]), renderPos, 3, 1)
+                            renderPos+=1
+                        renderStack(stdscr)
+
+                        playerIn = stdscr.getch()
+                        if playerIn == 260:
+                            #increment part choice
+                            if partChoice > 0:
+                                partChoice -= 1
+                        elif playerIn == 261:
+                            #decrement part choice
+                            if partChoice < len(part_list)-1:
+                                partChoice += 1
+                        elif playerIn in [122, 32, 10]:
+                            #select part
+                            chosen_part = part_list[partChoice]
+                            break
+                    #add part
                     player.inventory.append(chosen_part)
             if choice == 1:
-                #heal
-                player.hp = player.hpm
-            if choice == 2:
-                #edit tank
+                #heal & show stats
                 stackHandler(True, -1)
                 renderPos = 0
-                for i in range(len(player.inventory)):
-                    stackHandler(False, renderPos, "f{player.inventory[i][0]}:", renderPos+1, 2, 1)
-                    renderPos +=1
-                    for effect in player.inventory[i][1]:
-                        if effect in player.baseStats:
-                            stackHandler(False)
-                            stackHandler(False, renderPos, "f{player.inventory[i][1][effect]}:", renderPos+1, 2, 1)
-                            renderPos += 1
-                        else:
-                            raise Exception("How in the world did you fight a tank with bad data????????")
-                        
-                        if renderPos > 30:
-                            break
+                for stat in player.baseStats:
+                    exec(f"stackHandler(False, renderPos, shorthand[stat]+\":\"+str(player.{stat}), renderPos+1, 1, 1)")
+                    renderPos+=1
                 renderStack(stdscr)
+                player.hp = player.hpm
                 playerIn = stdscr.getch()
-                pass
+            if choice == 2:
+                #edit tank
+                curser_pos = 0
+                partChoice = 0
+                while True:
+                    #rendering
+                    if len(player.inventory) < 1:
+                        break
+                    stackHandler(True, -1)
+                    stackHandler(False, 0, "Exit?", 1, 2, 1)
+                    
+                    itemName = player.inventory[partChoice][0]
+                    if curser_pos == 0:
+                        stackHandler(False, 1, ">", 1, 1, 1)
+                    if partChoice < len(player.inventory)-1:
+                        itemName += " >"
+                    if partChoice > 0:
+                        stackHandler(False, 2, "<", 3, 1, 1)
+                    stackHandler(False, 3, itemName, 3, 3, 1)
+                    renderPos = 4
+                    for effect in player.inventory[partChoice][1]:
+                        stackHandler(False, renderPos, shorthand[effect]+":"+str(player.inventory[partChoice][1][effect]), renderPos, 3, 1)
+                        renderPos+=1
+
+                    renderStack(stdscr)
+
+                    #input
+                    playerIn = stdscr.getch()
+                    if playerIn == 259:
+                        #set to quit button
+                        curser_pos = 0
+                    elif playerIn == 258:
+                        #move down to selections
+                        if len(player.inventory) > 0:
+                            curser_pos = 1
+                    elif playerIn == 260:
+                        #change part choice -> 1
+                        if partChoice > 0 and curser_pos == 1:
+                            partChoice -= 1
+                    elif playerIn == 261:
+                        #change part choice <- 1
+                        if partChoice < len(player.inventory)-1 and curser_pos == 1:
+                            partChoice += 1
+                    elif playerIn in [122, 32, 10]:
+                        #select
+                        if curser_pos == 0:
+                            break
+                        else:
+                            player.replacePart(partChoice)
+                            break
 
 
     
@@ -384,6 +476,7 @@ def main(stdscr):
     peicePrint(stdscr, "press start", 1, 1, 1)
     #stdscr.addstr(1,1,"press start", (curses.color_pair(1)))
 
+    stdscr.getch() #for some reason this one reads the enter key press
     playerIn = stdscr.getch()
     stdscr.clear()
 
@@ -461,7 +554,7 @@ def main(stdscr):
             #load tank of choice
             else:
                 if tanks[choice].hp <= 0:
-                    tanks[choice] = tank(False, parts={"nuke":{"damage":100000}})
+                    tanks[choice] = tank()
                 else:
                     tankMenu(tanks[choice])
 
