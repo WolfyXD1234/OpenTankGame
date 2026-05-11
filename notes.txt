@@ -1,7 +1,1 @@
-1.  create all parts that will be used
-2.  create UI 
-    - file select ui finished
-3.  saving
-    - saving is started
-4.  part stealing
-5.  part swaping
+make unit tests

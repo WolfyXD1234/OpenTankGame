@@ -124,14 +124,14 @@ class tank:
             return {"hpm":hpm,"armor":armor,"travel":travel}
         elif (part == "engine"):
             travel = round(((random.random()*30)-15)*((dif+1)**0.5))
-            hit_rate = abs(round(((random.random()*1)-0.5)*((dif+1)**0.5), 3))
+            hit_rate = abs(round(((random.random()*0.5)-0.25)*((dif+1)**0.5), 3))
             #pips = ((random.random()*0)-0)*((dif+1)**0.5)
             #return {"travel":travel,"hit_rate":hit_rate,"pips":pips}
             return {"travel":travel,"hit_rate":hit_rate}
         elif (part == "cannon"):
             damage = round(((random.random()*5)-2.5)*((dif+1)**0.5))
             damage_range = round(((random.random()*8)-4)*((dif+1)**0.5))
-            hit_rate = round(((random.random()*2)-1)*((dif+1)**0.5),3)
+            hit_rate = round(((random.random()*1)-0.5)*((dif+1)**0.5),3)
             return {"damage":damage,"damage_range":damage_range,"hit_rate":hit_rate}
         elif (part == "ai"):
             prefered_range = round(((random.random()*40)-15)*((dif+1)**0.5))
@@ -139,9 +139,36 @@ class tank:
             fire_pref = round(((random.random()*6)-3)*((dif+1)**0.5),3)
             return {"prefered_range":prefered_range,"ok_range":ok_range, "fire_pref":fire_pref}
         elif (part == "extra"):
-            return{}
+            effect_amount = math.floor(dif/5)
+            temp_part = {}
+            if effect_amount > 5:
+                effect_amount = 5
+            possible_effects = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+            for i in range(effect_amount):
+                choice = random.choice(possible_effects)
+                possible_effects.remove(choice)
+
+                if choice == 0:
+                    temp_part["hpm"] = round(((random.random()*10)-5)*((dif+1)**0.5))
+                elif choice == 1:
+                    temp_part["armor"] = round(((random.random()*0.10)-0.01)*((dif+1)**0.5),3)
+                elif choice == 2:
+                    temp_part["travel"] = round(((random.random()*15)-7.5)*((dif+1)**0.5))
+                elif choice == 3:
+                    temp_part["hit_rate"] = abs(round(((random.random()*1)-0.5)*((dif+1)**0.5), 3))
+                elif choice == 4:
+                    temp_part["damage"] = round(((random.random()*3)-1.5)*((dif+1)**0.5))
+                elif choice == 5:
+                    temp_part["damage_range"] = round(((random.random()*4)-2)*((dif+1)**0.5))
+                elif choice == 6:
+                    temp_part["prefered_range"] = round(((random.random()*20)-10)*((dif+1)**0.5))
+                elif choice == 7:
+                    temp_part["ok_range"] = round(((random.random()*4)-1.5)*((dif+1)**0.5))
+                elif choice == 8:
+                    temp_part["fire_pref"] = round(((random.random()*3)-1.5)*((dif+1)**0.5),3)
+            return temp_part
         else:
-            print("what")
+            raise Exception("what")
     
     def reStat(self):
         #sets tank stats based on parts
@@ -159,7 +186,7 @@ class tank:
             if type(self.parts[part]) == dict:
                 for effect in self.parts[part]:
                     if effect in self.baseStats:
-                        exec(f"self.{effect}+=self.parts[part][effect]")
+                        exec(f"self.{effect}=round(self.{effect}+self.parts[part][effect],3)")
                     else:
                         raise Exception("bad tank data: non stat data")
             else:
@@ -201,7 +228,10 @@ def attack (attacker, defender, distance):
     if (armor < -0.5): armor = -0.5
     hit_chance = (attacker.hit_rate*10)/((distance**0.5)*(armor+1))
     if roll <= hit_chance:
-        damage = attacker.damage + random.randrange(-attacker.damage_range, attacker.damage_range)
+        if attacker.damage_range != 0:
+            damage = attacker.damage + random.randrange(-attacker.damage_range, attacker.damage_range)
+        else:
+            damage = attacker.damage
         if damage < 0:
             damage = 0
         defender.hp -= damage
@@ -213,6 +243,8 @@ def battle(stdscr, tankP, tankE):
     stackHandler(True, -1)
     distance = random.randint (100, 200)
     turn = random.randint(0,1)
+    stdscr.nodelay(True)
+    stallCount = 0
     while (True):
         stackHandler(True, 31)
         stackHandler(False, 0, "=", 1, 1, 1)
@@ -224,7 +256,7 @@ def battle(stdscr, tankP, tankE):
         curses.napms(500)
         if turn == 0:
             chance = random.random()
-            if chance < ((10**(-(tankP.fire_pref/10)))/((10**(-(tankP.fire_pref/10)))+math.exp(-(abs(tankP.prefered_range-distance))))) and abs(tankP.prefered_range-distance) > tankP.ok_range:
+            if (chance < ((10**(-(tankP.fire_pref/10)))/((10**(-(tankP.fire_pref/10)))+math.exp(-(abs(tankP.prefered_range-distance))))) and abs(tankP.prefered_range-distance) > tankP.ok_range and chance > stallCount):
                 if abs(distance-tankP.prefered_range) < tankP.travel:
                     distance = tankP.prefered_range
                 elif distance > tankP.prefered_range:
@@ -240,7 +272,7 @@ def battle(stdscr, tankP, tankE):
             turn = 1
         elif turn == 1:
             chance = random.random()
-            if chance < ((10**(-(tankE.fire_pref/10)))/((10**(-(tankE.fire_pref/10)))+math.exp(-(abs(tankE.prefered_range-distance))))) and abs(tankE.prefered_range-distance) > tankE.ok_range:
+            if (chance < ((10**(-(tankE.fire_pref/10)))/((10**(-(tankE.fire_pref/10)))+math.exp(-(abs(tankE.prefered_range-distance))))) and abs(tankE.prefered_range-distance) > tankE.ok_range and chance > stallCount):
                 if abs(distance-tankE.prefered_range) < tankE.travel:
                     distance = tankE.prefered_range
                 elif distance > tankE.prefered_range:
@@ -254,6 +286,7 @@ def battle(stdscr, tankP, tankE):
                 else:
                     stackHandler(False, 31, "@", 1, 2, 3)
             turn = 0
+        stallCount += 1
         renderStack(stdscr)
         curses.napms(300)
 
@@ -266,6 +299,13 @@ def battle(stdscr, tankP, tankE):
             stackHandler(False, 1, "#", 1, 21, 4)
             win = True
             break
+
+        cancel = stdscr.getch()
+        if cancel in [113, 263]:
+            win = None
+            break
+
+    stdscr.nodelay(False)
     stackHandler(True, 31)
     renderStack(stdscr)
     time.sleep(3)
@@ -350,9 +390,13 @@ def main(stdscr):
             if choice == 0:
                 #combat
                 fight = battle(stdscr, player, tank(difficulty=player.combats))
+                player.combats += 1
                 if fight == False:
                     #handle loss
                     saveHandler(False, tanks)
+                    return
+                elif fight == None:
+                    #handle exiting battle
                     return
                 else:
                     #handle win
@@ -452,6 +496,11 @@ def main(stdscr):
                             break
                         else:
                             player.replacePart(partChoice)
+                            break
+                    elif playerIn in [113, 263]:
+                        #trash part
+                        if curser_pos == 1:
+                            player.inventory.pop(partChoice)
                             break
 
 
